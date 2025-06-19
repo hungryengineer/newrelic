@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-newrelic
+  namespace: poc-nr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-newrelic
+  template:
+    metadata:
+      labels:
+        app: flask-newrelic
+    spec:
+      containers:
+      - name: flask-newrelic
+        image: kumaranshuman01/flask-newrelic:1.2.0
+        ports:
+        - containerPort: 5000
+        env:
+        - name: NEW_RELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: newrelic-license
+              key: license_key
+        - name: NEW_RELIC_CONFIG_FILE
+          value: /app/newrelic.ini
+        volumeMounts:
+        - name: config
+          mountPath: /app/newrelic.ini
+          subPath: newrelic.ini
+      volumes:
+      - name: config
+        configMap:
+          name: newrelic-config
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: newrelic-config
+  namespace: poc-nr
+data:
+  newrelic.ini: |
+    [newrelic]
+    license_key = <>
+    app_name = FlaskK8sApp
+    monitor_mode = true
+    log_level = debug
+    log_file = stdout
+
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: newrelic-license
+  namespace: poc-nr
+type: Opaque
+stringData:
+  license_key: <>
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-newrelic
+  namespace: poc-nr
+spec:
+  selector:
+    app: flask-newrelic
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000

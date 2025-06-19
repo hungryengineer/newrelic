@@ -1,0 +1,12 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+COPY . .
+
+# Install app dependencies
+RUN pip install flask newrelic gunicorn
+
+EXPOSE 5000
+
+# Start the app with New Relic instrumentation
+CMD ["gunicorn", "--timeout", "120", "--access-logfile", "-", "--bind", "0.0.0.0:5000", "app:app"]
